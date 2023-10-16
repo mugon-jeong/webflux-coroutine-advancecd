@@ -8,6 +8,11 @@ spring:
 #    url: r2dbc:pool:mariadb://localhost:3306/sample
 #    username: user
 #    password: 1234
+  sql:
+    init:
+      mode: always
+      #      schema-locations: classpath:db-init/test.sql
+      schema-locations: classpath:db-init/schema.sql
 
 logging:
   level:

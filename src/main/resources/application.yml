@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: spring-coroutine-advanced
+  output:
+    ansi:
+      enabled: always
+#  r2dbc:
+#    url: r2dbc:pool:mariadb://localhost:3306/sample
+#    username: user
+#    password: 1234
+
+logging:
+  level:
+    com.example.advanced: debug
+    org.springframework.r2dbc.core: debug
+    org.springframework.r2dbc.connection.init: debug
+  pattern:
+    console: "%d{HH:mm:ss.SSS}|%highlight(%-5level)|%X{txid:-}|%green(%t)|%logger|%blue(\\(%F:%L\\))|%msg%n"
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+  r2dbc:
+    url: r2dbc:pool:h2:mem://localhost:sample

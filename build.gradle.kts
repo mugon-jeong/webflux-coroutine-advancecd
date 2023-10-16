@@ -20,6 +20,11 @@ repositories {
 
 dependencies {
 
+    // reactor context 전파 라이브러리
+    // https://mvnrepository.com/artifact/io.micrometer/context-propagation
+    implementation("io.micrometer:context-propagation:1.0.5")
+
+
     // https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-aop
     implementation("org.springframework.boot:spring-boot-starter-aop")
 

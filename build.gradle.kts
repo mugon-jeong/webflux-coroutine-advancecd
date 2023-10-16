@@ -19,6 +19,16 @@ repositories {
 }
 
 dependencies {
+
+    // https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-aop
+    implementation("org.springframework.boot:spring-boot-starter-aop")
+
+
+    // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-slf4j
+    // 여러 스레드에서 하나의 로깅을 사용하기 위한 라이브러리
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-slf4j:1.7.3")
+
+
     // https://mvnrepository.com/artifact/io.github.microutils/kotlin-logging
     implementation("io.github.microutils:kotlin-logging:3.0.5")
 

@@ -13,14 +13,22 @@ spring:
       mode: always
       #      schema-locations: classpath:db-init/test.sql
       schema-locations: classpath:db-init/schema.sql
-
+server:
+  error: # on_param으로 옵션을 넣어주면 RequestParameter로 넣으면 보임
+    include-exception: true # exception class 명 노출
+    include-binding-errors: always # validation error
+    include-message: always # exception에 담긴 메세지
+    include-stacktrace: always # error stacktrace
 logging:
   level:
     com.example.advanced: debug
     org.springframework.r2dbc.core: debug
     org.springframework.r2dbc.connection.init: debug
+    # 자동으로 출력해주는 에러 로그 제거
+    org.springframework.boot.autoconfigure.web.reactive.error.AbstractErrorWebExceptionHandler: off # 로그 끄기
+    org.springframework.web.HttpLogging: off
   pattern:
-    console: "%d{HH:mm:ss.SSS}|%highlight(%-5level)|%X{txid:-}|%green(%t)|%logger|%blue(\\(%F:%L\\))|%msg%n"
+    console: "%d{HH:mm:ss.SSS}|%highlight(%-5level)|%X{txId:-}|%green(%t)|%logger|%blue(\\(%F:%L\\))|%msg%n"
 
 ---
 spring:

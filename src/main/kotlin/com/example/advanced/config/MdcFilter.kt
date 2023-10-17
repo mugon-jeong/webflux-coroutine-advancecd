@@ -1,6 +1,8 @@
 package com.example.advanced.config
 
+import com.example.advanced.config.extension.txid
 import io.micrometer.context.ContextRegistry
+import mu.KotlinLogging
 import org.slf4j.MDC
 import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Component
@@ -13,6 +15,7 @@ import reactor.util.context.Context
 import java.util.UUID
 
 const val TX_ID = "txId"
+private val logger = KotlinLogging.logger {  }
 
 /**
  * 모든 요청이 거치는 컴포넌트
@@ -21,7 +24,7 @@ const val TX_ID = "txId"
 @Order(1) // 가장 먼저 실행
 class MdcFilter : WebFilter {
     init {
-        // reactor 체인간에 컨텍스트 전파 설정
+        // reactor 체인간에 MDC 컨텍스트 전파 설정
         Hooks.enableAutomaticContextPropagation() // 퍼블리셔들 간에 체인이 이어지면서 전달이 될때 퍼블리셔들간에 컨텍스트들이 복사가 됨
         ContextRegistry.getInstance().registerThreadLocalAccessor( // 컨텍스트들이 복사될때 무엇이 복사될지 설정
             TX_ID, // 어떤 컨텍스트 복사할지
@@ -38,6 +41,8 @@ class MdcFilter : WebFilter {
         return chain.filter(exchange).contextWrite {
             // MDC 체인들 간에 context 유통
             Context.of(TX_ID, uuid)
+        }.doOnError {
+            exchange.request.txid = uuid
         }
     }
 }

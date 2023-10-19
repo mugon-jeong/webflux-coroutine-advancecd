@@ -60,13 +60,13 @@ class AdvancedController(
     // webflux에서는 BindingResult를 지원하지 않음
     @PutMapping("/test/error")
     suspend fun error(@RequestBody @Valid request: ReqErrorTest) {
-        logger.debug { "request" }
+//        logger.debug { "request" }
 
-        if (request.message == "error") {
-            throw InvalidParameter(request, request::message, code = "custom code", message = "custom error")
-        }
+//        if (request.message == "error") {
+//            throw InvalidParameter(request, request::message, code = "custom code", message = "custom error")
+//        }
 
-        throw RuntimeException("yahoo !!")
+//        throw RuntimeException("yahoo !!")
 
     }
 }

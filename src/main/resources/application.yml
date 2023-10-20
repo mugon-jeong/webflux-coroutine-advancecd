@@ -4,10 +4,14 @@ spring:
   output:
     ansi:
       enabled: always
-#  r2dbc:
-#    url: r2dbc:pool:mariadb://localhost:3306/sample
-#    username: user
-#    password: 1234
+  r2dbc:
+    url: r2dbc:pool:h2:mem:///sample
+    username: sa
+    password:
+  data:
+    redis:
+      host: localhost
+      port: 6379
   sql:
     init:
       mode: always
@@ -29,13 +33,5 @@ logging:
     org.springframework.web.HttpLogging: off
   pattern:
     console: "%d{HH:mm:ss.SSS}|%highlight(%-5level)|%X{txId:-}|%green(%t)|%logger|%blue(\\(%F:%L\\))|%msg%n"
-
----
-spring:
-  config:
-    activate:
-      on-profile: local
-  r2dbc:
-    url: r2dbc:pool:h2:mem://localhost:sample
 api:
   externalUrl: localhost:8091

@@ -15,7 +15,7 @@ import java.time.LocalDateTime
 
 @Service
 class ArticleService(
-    @Autowired private val repository: ArticleRepository,
+    private val repository: ArticleRepository,
     private val dbClient: DatabaseClient
 ) {
 

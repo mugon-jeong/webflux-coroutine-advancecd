@@ -1,10 +1,14 @@
 package com.example.advanced.service
 
+import com.example.advanced.config.extension.toLocalDate
+import com.example.advanced.config.validator.DateString
 import com.example.advanced.exception.NotFoundException
 import com.example.advanced.model.Article
 import com.example.advanced.repository.ArticleRepository
 import kotlinx.coroutines.flow.Flow
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.r2dbc.core.DatabaseClient
+import org.springframework.r2dbc.core.flow
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -12,15 +16,71 @@ import java.time.LocalDateTime
 @Service
 class ArticleService(
     @Autowired private val repository: ArticleRepository,
+    private val dbClient: DatabaseClient
 ) {
 
     fun getAll(): Flow<Article> {
         return repository.findAll()
     }
 
-    suspend fun getAll(title: String): Flow<Article> {
-        return repository.findAllByTitleContains(title)
+//    suspend fun getAll(title: String): Flow<Article> {
+//        return repository.findAllByTitleContains(title)
+//    }
+
+    suspend fun getAll(request: QryArticle): Flow<Article> {
+        val params = HashMap<String, Any>()
+        var sql = dbClient.sql(
+            """
+            SELECT id, title, body, author_id, created_at, updated_at
+            FROM TB_ARTICLE
+            WHERE 1=1
+            ${
+//            if (request.title.isNullOrBlank()) {
+//                ""
+//            } else {
+//                params["title"] = request.title.trim().let { "%$it" }
+//                "AND title LIKE :title"
+//            }
+                // 함수 확장
+                request.title.query {
+                    params["title"] = it.trim().let { "%$it" }
+                    "AND title LIKE :title"
+                }
+            }
+                ${
+                request.authorId.query {
+                    params["authorId"] = it
+                    "AND author_id IN (:authorId)"
+                }
+            }
+                ${
+                request.from.query {
+                    params["from"] = it.toLocalDate()
+                    "AND created_at >= :from"
+                }
+            }
+                ${
+                request.to.query {
+                    params["to"] = it.toLocalDate().plusDays(1)
+                    "AND created_at < :to"
+                }
+            }
+        """.trimIndent()
+        )
+        params.forEach { (key, value) -> sql = sql.bind(key, value) }
+        return sql.map { row ->
+            Article(
+                id = row.get("id") as Long,
+                title = row.get("title") as String,
+                body = row.get("body") as String?,
+                authorId = row.get("author_id") as Long,
+            ).apply {
+                createdAt = row.get("created_at") as LocalDateTime?
+                updatedAt = row.get("updated_at") as LocalDateTime?
+            }
+        }.flow()
     }
+
 
     suspend fun get(articleId: Long): ResArticle {
         return repository.findById(articleId)?.let { ResArticle(it) } ?: throw NotFoundException("post id : $articleId")
@@ -28,12 +88,12 @@ class ArticleService(
 
     @Transactional
     suspend fun create(request: SaveArticle): ResArticle {
-        return repository.save(Article().apply {
-            title = request.title
-            body = request.body
-            authorId = request.authorId
-        }).let {
-            if(it.title == "error") {
+        return repository.save(Article(
+            title = request.title ?: "",
+            body = request.body,
+            authorId = request.authorId,
+        )).let {
+            if (it.title == "error") {
                 throw RuntimeException("error")
             }
             ResArticle(it)
@@ -57,6 +117,16 @@ class ArticleService(
 
 }
 
+fun <T> T?.query(f: (T) -> String): String {
+    return when {
+        this == null -> ""
+        this is String && this.isBlank() -> ""
+        this is Collection<*> && this.isEmpty() -> ""
+        this is Array<*> && this.isEmpty() -> ""
+        else -> f.invoke(this)
+    }
+}
+
 data class SaveArticle(
     var title: String? = null,
     var body: String? = null,
@@ -71,7 +141,7 @@ data class ResArticle(
     var createdAt: LocalDateTime?,
     var updatedAt: LocalDateTime?,
 ) {
-    constructor(article: Article): this(
+    constructor(article: Article) : this(
         id = article.id,
         title = article.title ?: "",
         body = article.body ?: "",
@@ -80,3 +150,12 @@ data class ResArticle(
         updatedAt = article.updatedAt,
     )
 }
+
+data class QryArticle(
+    val title: String?,
+    val authorId: List<Long>?,
+    @DateString
+    val from: String?,
+    @DateString
+    val to: String?,
+)

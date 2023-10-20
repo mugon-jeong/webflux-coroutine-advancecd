@@ -3,32 +3,44 @@ package com.example.advanced.model
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.annotation.Id
 import org.springframework.data.annotation.LastModifiedDate
-import org.springframework.data.annotation.Version
 import org.springframework.data.relational.core.mapping.Table
-import java.io.Serializable
 import java.time.LocalDateTime
-import javax.annotation.processing.Generated
 
 @Table("TB_ARTICLE")
-class Article: Serializable {
-
+class Article(
     @Id
-    @Generated
-    var id: Long = 0
+    var id: Long = 0,
+    var title: String,
+    var body: String? = null,
+    var authorId: Long? = null,
+) : BaseEntity() {
 
-    var title: String? = null
 
-    var body: String? = null
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
 
-    var authorId: Long? = null
+        other as Article
 
+        return id == other.id
+    }
+
+    override fun hashCode(): Int {
+        return id.hashCode()
+    }
+
+    override fun toString(): String {
+        return "Article(id=$id, title='$title', body=$body, authorId=$authorId, ${super.toString()}})"
+    }
+}
+
+open class BaseEntity(
     @CreatedDate
-    var createdAt: LocalDateTime? = null
-
+    var createdAt: LocalDateTime? = null,
     @LastModifiedDate
-    var updatedAt: LocalDateTime? = null
-
-    @Version
-    var version: Int = 0
-
+    var updatedAt: LocalDateTime? = null,
+) {
+    override fun toString(): String {
+        return "createdAt=$createdAt, updatedAt=$updatedAt"
+    }
 }

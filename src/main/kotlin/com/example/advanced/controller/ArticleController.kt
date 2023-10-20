@@ -4,6 +4,7 @@ import com.example.advanced.model.Article
 import com.example.advanced.service.ResArticle
 import com.example.advanced.service.SaveArticle
 import com.example.advanced.service.ArticleService
+import com.example.advanced.service.QryArticle
 import kotlinx.coroutines.flow.Flow
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.*
@@ -14,13 +15,19 @@ class ArticleController(
     private val articleService: ArticleService,
 ) {
 
+//    @GetMapping("/all")
+//    suspend fun getAll(@RequestParam title: String?): Flow<Article> {
+//        return if(title.isNullOrEmpty()) {
+//            articleService.getAll()
+//        } else {
+//            articleService.getAll(title)
+//        }
+//    }
+
+    // /article/all?title=a&authorId=1
     @GetMapping("/all")
-    suspend fun getAll(@RequestParam title: String?): Flow<Article> {
-        return if(title.isNullOrEmpty()) {
-            articleService.getAll()
-        } else {
-            articleService.getAll(title)
-        }
+    suspend fun getAll(request:QryArticle): Flow<Article> {
+        return articleService.getAll(request)
     }
 
     @GetMapping("/{articleId}")

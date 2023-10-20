@@ -30,7 +30,7 @@ class ArticleService(
     private val repository: ArticleRepository,
     private val dbClient: DatabaseClient,
     private val cache: CacheManager,
-    private val locker: Locker
+    private val locker: Locker,
     redisTemplate: ReactiveRedisTemplate<Any, Any>
 ) {
     private val ops = redisTemplate.opsForValue()

@@ -1,23 +1,33 @@
 package com.example.advanced.service
 
+import com.example.advanced.config.CacheManager
 import com.example.advanced.config.extension.toLocalDate
 import com.example.advanced.config.validator.DateString
 import com.example.advanced.exception.NotFoundException
 import com.example.advanced.model.Article
 import com.example.advanced.repository.ArticleRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.reactor.awaitSingle
+import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.cache.interceptor.SimpleKey
+import org.springframework.data.redis.core.ReactiveRedisTemplate
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.flow
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.toJavaDuration
 
 @Service
 class ArticleService(
     private val repository: ArticleRepository,
-    private val dbClient: DatabaseClient
+    private val dbClient: DatabaseClient,
+    private val cache: CacheManager,
+    redisTemplate: ReactiveRedisTemplate<Any, Any>
 ) {
+    private val ops = redisTemplate.opsForValue()
 
     fun getAll(): Flow<Article> {
         return repository.findAll()
@@ -83,16 +93,22 @@ class ArticleService(
 
 
     suspend fun get(articleId: Long): ResArticle {
-        return repository.findById(articleId)?.let { ResArticle(it) } ?: throw NotFoundException("post id : $articleId")
+        val key = SimpleKey("/article/get", articleId)
+        return ops.get(key).awaitSingleOrNull()?.let { it as ResArticle } ?: repository.findById(articleId)?.let {
+            ops.set(key, it, 10.seconds.toJavaDuration()).awaitSingle()
+            ResArticle(it)
+        } ?: throw NotFoundException("post id : $articleId")
     }
 
     @Transactional
     suspend fun create(request: SaveArticle): ResArticle {
-        return repository.save(Article(
-            title = request.title ?: "",
-            body = request.body,
-            authorId = request.authorId,
-        )).let {
+        return repository.save(
+            Article(
+                title = request.title ?: "",
+                body = request.body,
+                authorId = request.authorId,
+            )
+        ).let {
             if (it.title == "error") {
                 throw RuntimeException("error")
             }
@@ -106,13 +122,20 @@ class ArticleService(
             request.title?.let { article.title = it }
             request.body?.let { article.body = it }
             request.authorId?.let { article.authorId = it }
-            repository.save(article).let { ResArticle(it) }
+            repository.save(article).let {
+                val key = SimpleKey("/article/get", articleId)
+                ops.delete(key).awaitSingle()
+                ResArticle(it)
+            }
         } ?: throw NotFoundException("No post(id:$articleId) found")
     }
 
     @Transactional
     suspend fun delete(articleId: Long) {
-        repository.deleteById(articleId)
+        repository.deleteById(articleId).also {
+            val key = SimpleKey("/article/get", articleId)
+            ops.delete(key).awaitSingle()
+        }
     }
 
 }

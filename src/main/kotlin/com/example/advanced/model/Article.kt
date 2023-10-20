@@ -1,9 +1,11 @@
 package com.example.advanced.model
 
+import org.springframework.core.serializer.Serializer
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.annotation.Id
 import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.relational.core.mapping.Table
+import java.io.Serializable
 import java.time.LocalDateTime
 
 @Table("TB_ARTICLE")
@@ -39,7 +41,7 @@ open class BaseEntity(
     var createdAt: LocalDateTime? = null,
     @LastModifiedDate
     var updatedAt: LocalDateTime? = null,
-) {
+) : Serializable{
     override fun toString(): String {
         return "createdAt=$createdAt, updatedAt=$updatedAt"
     }

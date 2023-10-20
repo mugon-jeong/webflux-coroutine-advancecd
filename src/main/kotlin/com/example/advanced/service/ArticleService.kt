@@ -1,5 +1,6 @@
 package com.example.advanced.service
 
+import com.example.advanced.config.CacheKey
 import com.example.advanced.config.CacheManager
 import com.example.advanced.config.extension.toLocalDate
 import com.example.advanced.config.validator.DateString
@@ -7,18 +8,19 @@ import com.example.advanced.exception.NotFoundException
 import com.example.advanced.model.Article
 import com.example.advanced.repository.ArticleRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.reactor.awaitSingle
-import kotlinx.coroutines.reactor.awaitSingleOrNull
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.cache.interceptor.SimpleKey
 import org.springframework.data.redis.core.ReactiveRedisTemplate
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.flow
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.io.Serializable
 import java.time.LocalDateTime
 import kotlin.time.Duration.Companion.seconds
-import kotlin.time.toJavaDuration
 
 @Service
 class ArticleService(
@@ -29,6 +31,11 @@ class ArticleService(
 ) {
     private val ops = redisTemplate.opsForValue()
 
+    init {
+        cache.TTL["/article/get"] = 10.seconds
+        cache.TTL["/article/get/all"] = 10.seconds
+    }
+
     fun getAll(): Flow<Article> {
         return repository.findAll()
     }
@@ -36,6 +43,13 @@ class ArticleService(
 //    suspend fun getAll(title: String): Flow<Article> {
 //        return repository.findAllByTitleContains(title)
 //    }
+
+    suspend fun getAllCached(request: QryArticle): Flow<Article> {
+        val key = CacheKey("/article/get/all", request)
+        return cache.get(key) {
+            getAll(request).toList()
+        }?.asFlow() ?: emptyFlow()
+    }
 
     suspend fun getAll(request: QryArticle): Flow<Article> {
         val params = HashMap<String, Any>()
@@ -92,12 +106,15 @@ class ArticleService(
     }
 
 
-    suspend fun get(articleId: Long): ResArticle {
-        val key = SimpleKey("/article/get", articleId)
-        return ops.get(key).awaitSingleOrNull()?.let { it as ResArticle } ?: repository.findById(articleId)?.let {
-            ops.set(key, it, 10.seconds.toJavaDuration()).awaitSingle()
-            ResArticle(it)
-        } ?: throw NotFoundException("post id : $articleId")
+    suspend fun get(articleId: Long): Article {
+        val key = CacheKey("/article/get", articleId)
+//        return cache.get<ResArticle>(key) ?: repository.findById(articleId)?.let {
+//            cache.set(key, it)
+//            ResArticle(it)
+//        } ?: throw NotFoundException("post id : $articleId")
+
+        return cache.get(key) { repository.findById(articleId) }
+            ?: throw NotFoundException("post id : $articleId")
     }
 
     @Transactional
@@ -123,8 +140,8 @@ class ArticleService(
             request.body?.let { article.body = it }
             request.authorId?.let { article.authorId = it }
             repository.save(article).let {
-                val key = SimpleKey("/article/get", articleId)
-                ops.delete(key).awaitSingle()
+                val key = CacheKey("/article/get", articleId)
+                cache.delete(key)
                 ResArticle(it)
             }
         } ?: throw NotFoundException("No post(id:$articleId) found")
@@ -133,8 +150,8 @@ class ArticleService(
     @Transactional
     suspend fun delete(articleId: Long) {
         repository.deleteById(articleId).also {
-            val key = SimpleKey("/article/get", articleId)
-            ops.delete(key).awaitSingle()
+            val key = CacheKey("/article/get", articleId)
+            cache.delete(key)
         }
     }
 
@@ -181,4 +198,4 @@ data class QryArticle(
     val from: String?,
     @DateString
     val to: String?,
-)
+) : Serializable

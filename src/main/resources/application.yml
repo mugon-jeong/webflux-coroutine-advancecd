@@ -37,3 +37,5 @@ spring:
       on-profile: local
   r2dbc:
     url: r2dbc:pool:h2:mem://localhost:sample
+api:
+  externalUrl: localhost:8091

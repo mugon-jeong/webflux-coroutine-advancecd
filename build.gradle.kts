@@ -20,6 +20,14 @@ repositories {
 
 dependencies {
 
+    // https://mvnrepository.com/artifact/io.github.resilience4j/resilience4j-kotlin
+    implementation("io.github.resilience4j:resilience4j-kotlin:2.1.0")
+
+
+    // https://mvnrepository.com/artifact/io.github.resilience4j/resilience4j-all
+    implementation("io.github.resilience4j:resilience4j-all:2.1.0")
+
+
     // https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-validation
     implementation("org.springframework.boot:spring-boot-starter-validation")
 

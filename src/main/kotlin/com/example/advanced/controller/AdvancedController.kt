@@ -1,44 +1,20 @@
 package com.example.advanced.controller
 
 import com.example.advanced.config.validator.DateString
-import com.example.advanced.exception.InvalidParameter
 import com.example.advanced.service.AdvancedService
-import jakarta.validation.Constraint
-import jakarta.validation.ConstraintValidator
-import jakarta.validation.ConstraintValidatorContext
-import jakarta.validation.Payload
+import com.example.advanced.service.ExternalApi
 import jakarta.validation.Valid
 import jakarta.validation.constraints.NotEmpty
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.slf4j.MDCContext
-import kotlinx.coroutines.withContext
 import mu.KotlinLogging
-import org.aspectj.lang.ProceedingJoinPoint
-import org.aspectj.lang.annotation.Around
-import org.aspectj.lang.annotation.Aspect
-import org.aspectj.lang.reflect.MethodSignature
-import org.springframework.core.KotlinDetector
-import org.springframework.http.HttpStatus
-import org.springframework.stereotype.Component
-import org.springframework.validation.BindException
-import org.springframework.validation.BindingResult
-import org.springframework.web.bind.WebDataBinder
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PutMapping
-import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.ResponseStatus
-import org.springframework.web.bind.annotation.RestController
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import kotlin.coroutines.Continuation
-import kotlin.reflect.KClass
-import kotlin.reflect.KProperty
+import org.springframework.web.bind.annotation.*
 
 private val logger = KotlinLogging.logger { }
 
 @RestController
 class AdvancedController(
     private val service: AdvancedService,
+    private val externalApi: ExternalApi,
 ) {
 
     @GetMapping("/test/mdc")
@@ -68,6 +44,16 @@ class AdvancedController(
 
 //        throw RuntimeException("yahoo !!")
 
+    }
+
+    @GetMapping("/external/delay")
+    suspend fun delay() {
+        externalApi.delay()
+    }
+
+    @GetMapping("/external/circuit/{flag}")
+    suspend fun testCircuitBreaker(@PathVariable flag: String): String {
+        return externalApi.testCircuitBreaker(flag)
     }
 }
 

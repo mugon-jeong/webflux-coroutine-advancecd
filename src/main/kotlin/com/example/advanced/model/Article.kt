@@ -16,6 +16,7 @@ class Article(
     var title: String,
     var body: String? = null,
     var authorId: Long? = null,
+    var balance: Int = 0,
     // optimistic locking
     // 따로 서비스에서 처리해줄 필요 없음 (자동 처리)
     // but 오류가 발생함 (어드민에서는 괜찮음)
@@ -39,6 +40,10 @@ class Article(
 
     override fun toString(): String {
         return "Article(id=$id, title='$title', body=$body, authorId=$authorId, ${super.toString()}})"
+    }
+
+    fun toResBalance(): Int {
+        return this.balance
     }
 }
 

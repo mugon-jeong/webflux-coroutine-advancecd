@@ -13,6 +13,6 @@ interface ArticleRepository : CoroutineCrudRepository<Article, Long> {
     suspend fun findAllByTitleContains(title: String): Flow<Article>
 
     // 조회하면 해당 row에 대해 locking
-    @Lock(LockMode.PESSIMISTIC_WRITE)
+//    @Lock(LockMode.PESSIMISTIC_WRITE)
     suspend fun findArticleById(id: Long): Article?
 }

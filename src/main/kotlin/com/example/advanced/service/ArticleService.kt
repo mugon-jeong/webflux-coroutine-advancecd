@@ -2,16 +2,19 @@ package com.example.advanced.service
 
 import com.example.advanced.config.CacheKey
 import com.example.advanced.config.CacheManager
+import com.example.advanced.config.Locker
 import com.example.advanced.config.extension.toLocalDate
 import com.example.advanced.config.validator.DateString
 import com.example.advanced.exception.NotFoundException
 import com.example.advanced.model.Article
 import com.example.advanced.repository.ArticleRepository
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.reactor.awaitSingle
+import mu.KotlinLogging
 import org.springframework.cache.interceptor.SimpleKey
 import org.springframework.data.redis.core.ReactiveRedisTemplate
 import org.springframework.r2dbc.core.DatabaseClient
@@ -21,12 +24,13 @@ import org.springframework.transaction.annotation.Transactional
 import java.io.Serializable
 import java.time.LocalDateTime
 import kotlin.time.Duration.Companion.seconds
-
+private val logger = KotlinLogging.logger {  }
 @Service
 class ArticleService(
     private val repository: ArticleRepository,
     private val dbClient: DatabaseClient,
     private val cache: CacheManager,
+    private val locker: Locker
     redisTemplate: ReactiveRedisTemplate<Any, Any>
 ) {
     private val ops = redisTemplate.opsForValue()
@@ -35,6 +39,21 @@ class ArticleService(
         cache.TTL["/article/get"] = 10.seconds
         cache.TTL["/article/get/all"] = 10.seconds
     }
+
+    @Transactional
+    suspend fun addBalance(id: Long, amount: Int): Article {
+        val key = SimpleKey(ArticleService::addBalance.name, id)
+        return locker.lock(key){
+            val account = repository.findById(id) ?: throw throw RuntimeException("error")
+            delay(3.seconds)
+            account.balance += amount
+            logger.debug { "before commit: ${account.toResBalance()}" }
+            repository.save(account)
+            repository.findById(id)!!
+        }
+
+    }
+
 
     fun getAll(): Flow<Article> {
         return repository.findAll()
